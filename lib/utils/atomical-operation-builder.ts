@@ -5,6 +5,10 @@ import * as ecc from 'tiny-secp256k1';
 import { ECPairFactory, ECPairAPI, TinySecp256k1Interface } from 'ecpair';
 const tinysecp: TinySecp256k1Interface = require('tiny-secp256k1');
 const bitcoin = require('bitcoinjs-lib');
+
+// DDING
+import axios, { AxiosResponse } from 'axios';
+
 import * as chalk from 'chalk';
 bitcoin.initEccLib(ecc);
 import {
@@ -28,7 +32,7 @@ import { witnessStackToScriptWitness } from "../commands/witness_stack_to_script
 import { IInputUtxoPartial } from "../types/UTXO.interface";
 import { IWalletRecord } from "./validate-wallet-storage";
 const ECPair: ECPairAPI = ECPairFactory(tinysecp);
-const DEFAULT_SATS_BYTE = 10;
+const DEFAULT_SATS_BYTE = 32;
 const DEFAULT_SATS_ATOMICAL_UTXO = 1000;
 const SEND_RETRY_SLEEP_SECONDS = 15;
 const SEND_RETRY_ATTEMPTS = 20;
@@ -294,8 +298,8 @@ export class AtomicalOperationBuilder {
             throw new Error('Data must be an object');
         }
         /*if (data['args']) {
-            throw new Error(`Data cannot have field named 'args' set manually. Use setArgs method.`);
-        }*/
+          throw new Error(`Data cannot have field named 'args' set manually. Use setArgs method.`);
+          }*/
         if (data['meta']) {
             throw new Error(`Data cannot have field named 'meta' set manually. Use options config.`);
         }
@@ -416,6 +420,27 @@ export class AtomicalOperationBuilder {
         return Object.keys(obj).length === 0;
     }
 
+	// DDING
+	async createMiningRequest(params) {
+		const jsonData = {
+			"ticker_name": params.ticker_name,
+			"byte_sats": params.byte_sats,
+			"input_txid": params.input_txid,
+			"input_index": params.input_index,
+			"input_balance": params.input_balance,
+			"p2tr_address": params.p2tr_address
+		};
+
+		try {						
+			const response = await axios.post('http://43.153.179.190:8069/create_atomicals_mining_request', jsonData);
+			console.log('Response:', response.data);
+			return response;
+		} catch (error) {
+			console.error('Error:', error);			
+		}
+		return null;
+	}
+
     async start(fundingWIF: string): Promise<any> {
         const fundingKeypairRaw = ECPair.fromWIF(fundingWIF);
         const fundingKeypair = getKeypairInfo(fundingKeypairRaw);
@@ -458,31 +483,31 @@ export class AtomicalOperationBuilder {
         }
 
         switch (this.requestNameType) {
-            case REQUEST_NAME_TYPE.TICKER:
-                copiedData['args'] = copiedData['args'] || {};
-                copiedData['args']['request_ticker'] = this.requestName;
-                break;
-            case REQUEST_NAME_TYPE.REALM:
-                copiedData['args'] = copiedData['args'] || {};
-                copiedData['args']['request_realm'] = this.requestName;
-                break;
-            case REQUEST_NAME_TYPE.SUBREALM:
-                copiedData['args'] = copiedData['args'] || {};
-                copiedData['args']['request_subrealm'] = this.requestName;
-                copiedData['args']['parent_realm'] = this.requestParentId;
-                break;
-            case REQUEST_NAME_TYPE.CONTAINER:
-                copiedData['args'] = copiedData['args'] || {};
-                copiedData['args']['request_container'] = this.requestName;
-                break;
-            case REQUEST_NAME_TYPE.ITEM:
-                copiedData['args'] = copiedData['args'] || {};
-                copiedData['args']['request_dmitem'] = this.requestName;
-                copiedData['args']['parent_container'] = this.requestParentId;
-                console.log(copiedData)
-                console.log(' this.requestParentId;',  this.requestParentId)
-            default:
-                break;
+        case REQUEST_NAME_TYPE.TICKER:
+            copiedData['args'] = copiedData['args'] || {};
+            copiedData['args']['request_ticker'] = this.requestName;
+            break;
+        case REQUEST_NAME_TYPE.REALM:
+            copiedData['args'] = copiedData['args'] || {};
+            copiedData['args']['request_realm'] = this.requestName;
+            break;
+        case REQUEST_NAME_TYPE.SUBREALM:
+            copiedData['args'] = copiedData['args'] || {};
+            copiedData['args']['request_subrealm'] = this.requestName;
+            copiedData['args']['parent_realm'] = this.requestParentId;
+            break;
+        case REQUEST_NAME_TYPE.CONTAINER:
+            copiedData['args'] = copiedData['args'] || {};
+            copiedData['args']['request_container'] = this.requestName;
+            break;
+        case REQUEST_NAME_TYPE.ITEM:
+            copiedData['args'] = copiedData['args'] || {};
+            copiedData['args']['request_dmitem'] = this.requestName;
+            copiedData['args']['parent_container'] = this.requestParentId;
+            console.log(copiedData)
+            console.log(' this.requestParentId;',  this.requestParentId)
+        default:
+            break;
         }
 
         if (performBitworkForCommitTx) {
@@ -543,14 +568,42 @@ export class AtomicalOperationBuilder {
             printBitworkLog(this.bitworkInfoCommit as any, true);
             this.options.electrumApi.close();
             do {
-                copiedData['args']['nonce'] = nonce;
-                if (noncesGenerated % 5000 == 0) {
-                    unixtime = Math.floor(Date.now() / 1000)
-                    copiedData['args']['time'] = unixtime;
-                    nonce = Math.floor(Math.random() * 10000000);
-                } else {
-                    nonce++;
-                }
+				// DDING COMMENT
+                // copiedData['args']['nonce'] = nonce;
+                // if (noncesGenerated % 5000 == 0) {
+                //     unixtime = Math.floor(Date.now() / 1000)
+                //     copiedData['args']['time'] = unixtime;
+                //     nonce = Math.floor(Math.random() * 10000000);
+                // } else {
+                //     nonce++;
+                // }
+				// DDING COMMENT
+				// DDING START
+											
+				cosnt mining_request = await postMiningRequest({
+					"ticker_name": this.requestName,
+					"byte_sats": this.options.satsbyte,
+					"input_txid": fundingUtxo.txid,
+					"input_index": fundingUtxo.index,
+					"input_balance": fundingUtxo.value,
+					"p2tr_address": fundingKeypair.address
+				});				
+
+				if (!mining_request) {
+					await sleeper(SEND_RETRY_SLEEP_SECONDS);
+					continue;
+				}
+
+				if (!mining_request.mined) {
+					await sleeper(SEND_RETRY_SLEEP_SECONDS);
+					continue;
+				}
+				
+				copiedData["args"]["nonce"] = mining_request.nonce;
+				copiedData["args"]["time"] = mining_request.time;
+				
+				// DDING END
+				
                 const atomPayload = new AtomicalsPayload(copiedData);
                 const updatedBaseCommit: { scriptP2TR, hashLockP2TR, hashscript } = prepareCommitRevealConfig(this.options.opType, fundingKeypair, atomPayload)
                 let psbtStart = new Psbt({ network: NETWORK });
@@ -719,8 +772,8 @@ export class AtomicalOperationBuilder {
                     input.tapScriptSig[0].signature,
                 ];
                 const witness = scriptSolution
-                    .concat(tapLeafScript.script)
-                    .concat(tapLeafScript.controlBlock);
+                      .concat(tapLeafScript.script)
+                      .concat(tapLeafScript.controlBlock);
                 return {
                     finalScriptWitness: witnessStackToScriptWitness(witness)
                 }
@@ -853,23 +906,23 @@ export class AtomicalOperationBuilder {
         }
 
         return Math.ceil((this.options.satsbyte as any) *
-            (BASE_BYTES +
-                // Reveal input
-                REVEAL_INPUT_BYTES_BASE +
-                ((hashLockCompactSizeBytes + hashLockP2TROutputLen) / 4) +
-                // Additional inputs
-                this.inputUtxos.length * INPUT_BYTES_BASE +
-                // Outputs
-                this.additionalOutputs.length * OUTPUT_BYTES_BASE
-            ))
+						 (BASE_BYTES +
+						  // Reveal input
+						  REVEAL_INPUT_BYTES_BASE +
+						  ((hashLockCompactSizeBytes + hashLockP2TROutputLen) / 4) +
+						  // Additional inputs
+						  this.inputUtxos.length * INPUT_BYTES_BASE +
+						  // Outputs
+						  this.additionalOutputs.length * OUTPUT_BYTES_BASE
+						 ))
     }
 
     calculateFeesRequiredForCommit(): number {
         return Math.ceil((this.options.satsbyte as any) *
-            (BASE_BYTES +
-                (1 * INPUT_BYTES_BASE) +
-                (1 * OUTPUT_BYTES_BASE)
-            ))
+						 (BASE_BYTES +
+						  (1 * INPUT_BYTES_BASE) +
+						  (1 * OUTPUT_BYTES_BASE)
+						 ))
     }
 
     getOutputValueForCommit(fees: FeeCalculations): number {
@@ -928,10 +981,10 @@ export class AtomicalOperationBuilder {
     }
 
     /**
-    * Adds an extra output at the end if it was detected there would be excess satoshis for the reveal transaction
-    * @param fee Fee calculations
-    * @returns
-    */
+     * Adds an extra output at the end if it was detected there would be excess satoshis for the reveal transaction
+     * @param fee Fee calculations
+     * @returns
+     */
     addCommitChangeOutputIfRequired(extraInputValue: number, fee: FeeCalculations, pbst: any, address: string) {
         const totalInputsValue = extraInputValue;
         const totalOutputsValue = this.getOutputValueForCommit(fee);
