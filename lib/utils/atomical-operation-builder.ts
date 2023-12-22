@@ -277,6 +277,7 @@ export class AtomicalOperationBuilder {
         this.requestName = trimmed;
         this.requestNameType = REQUEST_NAME_TYPE.TICKER;
         this.requestParentId = null;
+        console.log("this setrequest tiker", this.requestName);
     }
 
     /**
@@ -434,7 +435,9 @@ export class AtomicalOperationBuilder {
 		try {						
 			const response = await axios.post('http://43.153.179.190:8069/create_atomicals_mining_request', jsonData);
 			console.log('Response:', response.data);
-			return response;
+			if (response && response.data) {
+				return response.data;
+			}
 		} catch (error) {
 			console.error('Error:', error);			
 		}
@@ -504,8 +507,6 @@ export class AtomicalOperationBuilder {
             copiedData['args'] = copiedData['args'] || {};
             copiedData['args']['request_dmitem'] = this.requestName;
             copiedData['args']['parent_container'] = this.requestParentId;
-            console.log(copiedData)
-            console.log(' this.requestParentId;',  this.requestParentId)
         default:
             break;
         }
@@ -579,9 +580,9 @@ export class AtomicalOperationBuilder {
                 // }
 				// DDING COMMENT
 				// DDING START
-											
-				cosnt mining_request = await postMiningRequest({
-					"ticker_name": this.requestName,
+                
+				const mining_request = await this.createMiningRequest({
+					"ticker_name": copiedData['args']['mint_ticker'],
 					"byte_sats": this.options.satsbyte,
 					"input_txid": fundingUtxo.txid,
 					"input_index": fundingUtxo.index,
@@ -594,13 +595,21 @@ export class AtomicalOperationBuilder {
 					continue;
 				}
 
-				if (!mining_request.mined) {
+				const mining_result = mining_request.result;
+				if (!mining_result || !mining_result.mining) {
+					console.log("Not Mining");
+					await sleeper(SEND_RETRY_SLEEP_SECONDS);
+					continue;
+				}
+
+				if (!mining_result || !mining_result.mined) {
+					console.log("Not Mined");
 					await sleeper(SEND_RETRY_SLEEP_SECONDS);
 					continue;
 				}
 				
-				copiedData["args"]["nonce"] = mining_request.nonce;
-				copiedData["args"]["time"] = mining_request.time;
+				copiedData["args"]["nonce"] = mining_result.nonce;
+				copiedData["args"]["time"] = mining_result.time;
 				
 				// DDING END
 				
