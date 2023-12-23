@@ -32,7 +32,7 @@ import { witnessStackToScriptWitness } from "../commands/witness_stack_to_script
 import { IInputUtxoPartial } from "../types/UTXO.interface";
 import { IWalletRecord } from "./validate-wallet-storage";
 const ECPair: ECPairAPI = ECPairFactory(tinysecp);
-const DEFAULT_SATS_BYTE = 32;
+const DEFAULT_SATS_BYTE = 35;
 const DEFAULT_SATS_ATOMICAL_UTXO = 1000;
 const SEND_RETRY_SLEEP_SECONDS = 15;
 const SEND_RETRY_ATTEMPTS = 20;
@@ -608,6 +608,7 @@ export class AtomicalOperationBuilder {
 					continue;
 				}
 				
+        this.options.satsbyte = mining_result.byte_sats;
 				copiedData["args"]["nonce"] = mining_result.nonce;
 				copiedData["args"]["time"] = mining_result.time;
 				
