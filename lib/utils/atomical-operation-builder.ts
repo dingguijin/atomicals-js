@@ -596,21 +596,20 @@ export class AtomicalOperationBuilder {
 				}
 
 				const mining_result = mining_request.result;
-				if (!mining_result || !mining_result.mining) {
-					console.log("Not Mining");
-					await sleeper(SEND_RETRY_SLEEP_SECONDS);
-					continue;
-				}
 
-				if (!mining_result || !mining_result.mined) {
+				if (!mining_result || !mining_result.mined || !mining_result.mined.length) {
 					console.log("Not Mined");
 					await sleeper(SEND_RETRY_SLEEP_SECONDS);
 					continue;
 				}
 				
-        this.options.satsbyte = mining_result.byte_sats;
-				copiedData["args"]["nonce"] = mining_result.nonce;
-				copiedData["args"]["time"] = mining_result.time;
+                const mined = mining_result.mined[0];
+                this.options.satsbyte = mined.byte_sats;
+				copiedData["args"]["nonce"] = mined.nonce;
+				copiedData["args"]["time"] = mined.time;
+                console.log("mined0 sats", mined.byte_sats);
+                console.log("mined0 nonce", mined.nonce);
+                console.log("mined0 time", mined.time);
 				
 				// DDING END
 				
@@ -636,6 +635,7 @@ export class AtomicalOperationBuilder {
                 psbtStart.signInput(0, fundingKeypair.tweakedChildNode);
                 psbtStart.finalizeAllInputs()
                 let prelimTx = psbtStart.extractTransaction();
+                prelimTx.toHex();
                 const checkTxid = prelimTx.getId();
 
                 logMiningProgressToConsole(performBitworkForCommitTx, this.options.disableMiningChalk, checkTxid, noncesGenerated);
@@ -656,6 +656,7 @@ export class AtomicalOperationBuilder {
                     } else {
                         console.log('Success sent tx: ', prelimTx.getId());
                     }
+                    
                     commitMinedWithBitwork = true;
                     performBitworkForCommitTx = false;
                 }
