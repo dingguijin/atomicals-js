@@ -930,21 +930,12 @@ export class AtomicalOperationBuilder {
         console.log("caculateAmountRequiredForReveal BASE_BYTES", BASE_BYTES);
         console.log("caculateAmountRequiredForReveal hashLockCompactSizeBytes P2TR", hashLockP2TROutputLen);
         console.log("caculateAmountRequiredForReveal hashLockCompactSizeBytes", hashLockP2TROutputLen);
-        console.log("caculateAmountRequiredForReveal r", r);
+        console.log("caculateAmountRequiredForReveal r", Math.ceil(r));
 
 
         // DDING
 
-        return Math.ceil((this.options.satsbyte as any) *
-						 (BASE_BYTES +
-						  // Reveal input
-						  REVEAL_INPUT_BYTES_BASE +
-						  ((hashLockCompactSizeBytes + hashLockP2TROutputLen) / 4) +
-						  // Additional inputs
-						  this.inputUtxos.length * INPUT_BYTES_BASE +
-						  // Outputs
-						  this.additionalOutputs.length * OUTPUT_BYTES_BASE
-						 ))
+        return Math.ceil((this.options.satsbyte as any) * Math.ceil(r));
     }
 
     calculateFeesRequiredForCommit(): number {
